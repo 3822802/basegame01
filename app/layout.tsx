@@ -41,12 +41,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <Providers>
-      <html lang="en">
-        <body className={`${inter.variable} ${sourceCodePro.variable}`}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.variable} ${sourceCodePro.variable}`} suppressHydrationWarning>
+        <Providers>
           <SafeArea>{children}</SafeArea>
-        </body>
-      </html>
-    </Providers>
+        </Providers>
+      </body>
+    </html>
   );
 }
