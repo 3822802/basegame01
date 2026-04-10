@@ -1,126 +1,210 @@
 .container {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
-  color: white;
   position: relative;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: #fff9ed;
 }
 
-.closeButton {
+.backgroundLayer {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: none;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  color: white;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
-  transition: all 0.3s ease;
+  inset: 0;
+  background: linear-gradient(180deg, #8ed6ff 0%, #b9e4ff 40%, #4d8f56 100%);
+  z-index: 0;
 }
 
-.closeButton:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.5);
+.mountainsLayer {
+  position: absolute;
+  inset: auto 0 35% 0;
+  height: 40%;
+  background:
+    radial-gradient(circle at 20% 100%, #6e8a74 0 24%, transparent 25%),
+    radial-gradient(circle at 48% 100%, #5f7c67 0 30%, transparent 31%),
+    radial-gradient(circle at 76% 100%, #4f6c57 0 22%, transparent 23%);
+  opacity: 0.9;
+  z-index: 1;
 }
 
-.content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  padding: 2rem;
+.forestLayer {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 36%;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      #1f3f2e 0 18px,
+      #224a34 18px 30px,
+      #1a3728 30px 42px
+    );
+  box-shadow: inset 0 18px 25px rgba(0, 0, 0, 0.2);
+  z-index: 2;
 }
 
-.waitlistForm {
-  text-align: center;
-  max-width: 600px;
-  width: 100%;
+.card {
+  position: relative;
+  z-index: 3;
+  width: min(96vw, 560px);
+  border-radius: 24px;
+  padding: 20px;
+  background: rgba(18, 42, 26, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(8px);
 }
 
 .title {
-  font-size: clamp(2.5rem, 6vw, 4rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  margin-bottom: 2rem;
-  background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+  text-align: center;
+  font-size: clamp(2rem, 7vw, 3rem);
+  letter-spacing: 0.03em;
+  margin-bottom: 12px;
 }
 
-.subtitle {
-  font-size: 1.2rem;
-  line-height: 1.6;
-  margin-bottom: 3rem;
-  color: rgba(255, 255, 255, 0.8);
-  font-weight: 300;
-}
-
-.form {
+.playerLine {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  width: 100%;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.22);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  font-size: 0.9rem;
 }
 
-.emailInput {
-  width: 100%;
-  max-width: 400px;
-  padding: 1rem 1.5rem;
-  font-size: 1rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  color: white;
-  backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
-}
-
-.emailInput::placeholder {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.emailInput:focus {
-  outline: none;
-  border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+.warning {
+  margin: 8px 0 14px;
+  color: #ffdf99;
+  text-align: center;
 }
 
 .error {
-  color: #ff6b6b;
-  font-size: 0.9rem;
-  margin: 0;
+  margin: 8px 0 12px;
+  color: #ffd1d1;
+  text-align: center;
 }
 
-.joinButton {
-  background: #f7d954;
-  color: #000;
-  border: none;
-  padding: 1rem 3rem;
-  font-size: 1rem;
-  font-weight: 700;
+.scorePanel {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.scorePanel > div {
+  background: rgba(14, 25, 17, 0.4);
   border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-top: 1rem;
-  box-shadow: 0 4px 20px rgba(247, 217, 84, 0.3);
+  padding: 10px;
+  text-align: center;
 }
 
-.joinButton:hover {
-  background: #f5d73a;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(247, 217, 84, 0.4);
+.metaLabel {
+  font-size: 0.78rem;
+  opacity: 0.84;
+}
+
+.metaValue {
+  font-size: 1.08rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.menuButtons,
+.viewBlock {
+  display: grid;
+  gap: 10px;
+}
+
+.woodButton,
+.smallButton,
+.backButton {
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(180deg, #8c5d33 0%, #6f4624 100%);
+  box-shadow:
+    0 2px 0 #4d3018,
+    0 8px 16px rgba(0, 0, 0, 0.25);
+}
+
+.smallButton {
+  width: 140px;
+  justify-self: center;
+  font-size: 0.86rem;
+  padding: 8px;
+}
+
+.backButton {
+  margin-top: 14px;
+  width: 100%;
+}
+
+.woodButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.bearButton {
+  border: none;
+  border-radius: 22px;
+  padding: 18px;
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  cursor: pointer;
+  background: radial-gradient(circle at 50% 30%, #b8824f, #6d4328);
+  color: #fff;
+  box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.35);
+}
+
+.bearButton:active {
+  transform: scale(0.98);
+}
+
+.bearIcon {
+  font-size: clamp(4.5rem, 16vw, 6.5rem);
+}
+
+.bearCaption {
+  letter-spacing: 0.06em;
+  font-size: 0.95rem;
+}
+
+.hint {
+  text-align: center;
+  font-size: 0.86rem;
+  opacity: 0.9;
+}
+
+.checkinText {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.timer {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.leaderboard {
+  margin-top: 10px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.leaderboardRow {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.leaderboardRow:last-child {
+  border-bottom: none;
 }

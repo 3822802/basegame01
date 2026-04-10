@@ -14,9 +14,9 @@ export async function generateMetadata(): Promise<Metadata> {
         version: farcasterConfig.miniapp.version,
         imageUrl: farcasterConfig.miniapp.heroImageUrl,
         button: {
-          title: `Join the ${farcasterConfig.miniapp.name} Waitlist`,
+          title: "Open Bear Tapper",
           action: {
-            name: `Launch ${farcasterConfig.miniapp.name}`,
+            name: "Launch Game",
             type: "launch_frame",
           },
         },

@@ -1,127 +1,312 @@
 "use client";
-import { useState, useEffect } from "react";
-import sdk from "@farcaster/miniapp-sdk";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMiniApp } from "./providers/MiniAppProvider";
-import { useRouter } from "next/navigation";
-import { farcasterConfig } from "../farcaster.config";
+import { base } from "wagmi/chains";
+import { useAccount, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { bearTapGameAbi, bearTapGameAddress } from "@/lib/contracts/bearTapGame";
 import styles from "./page.module.css";
 
-interface AuthResponse {
-  success: boolean;
-  user?: {
-    fid: number; // FID is the unique identifier for the user
-    issuedAt?: number;
-    expiresAt?: number;
-  };
-  message?: string; // Error messages come as 'message' not 'error'
+type View = "menu" | "tap" | "leaderboard" | "checkin";
+
+interface GameState {
+  score: number;
+  streak: number;
+  multiplierBps: number;
+  canCheckinNow: boolean;
+  nextCheckinInSec: number;
 }
 
+interface LeaderboardRow {
+  rank: number;
+  wallet: string;
+  score: number;
+}
+
+function shortWallet(wallet: string) {
+  if (!wallet) return "";
+  return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
+}
+
+function formatCountdownFromSeconds(seconds: number): string {
+  const total = Math.max(0, Math.floor(seconds));
+  const h = String(Math.floor(total / 3600)).padStart(2, "0");
+  const m = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
+  const s = String(total % 60).padStart(2, "0");
+  return `${h}:${m}:${s}`;
+}
 
 export default function Home() {
-  const { context, isReady } = useMiniApp();
-  const [email, setEmail] = useState("");
+  const { context } = useMiniApp();
+  const { address, isConnected, chainId } = useAccount();
+  const publicClient = usePublicClient();
+  const [view, setView] = useState<View>("menu");
+  const [state, setState] = useState<GameState | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([]);
+  const [countdown, setCountdown] = useState("00:00:00");
+  const [pendingTaps, setPendingTaps] = useState(0);
   const [error, setError] = useState("");
-  const router = useRouter();
- 
-  
+  const name = useMemo(
+    () => context?.user?.displayName || (address ? `Player ${address.slice(2, 6).toUpperCase()}` : "Player"),
+    [context?.user?.displayName, address],
+  );
 
-  // If you need to verify the user's identity, you can use the SDK's quickAuth.
-  // This will verify the user's signature and return the user's FID. You can update
-  // this to meet your needs. See the /app/api/auth/route.ts file for more details.
-  // Note: If you don't need to verify the user's identity, you can get their FID and other user data
-  // via `context.user.fid`.
-  const [authData, setAuthData] = useState<AuthResponse | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [authError, setAuthError] = useState<Error | null>(null);
+  const { data: txHash, isPending: isWritePending, writeContractAsync } = useWriteContract();
+  const { isLoading: isTxMining, isSuccess: isTxMined } = useWaitForTransactionReceipt({
+    hash: txHash,
+    query: { enabled: Boolean(txHash) },
+  });
+
+  const fetchState = useCallback(async () => {
+    if (!address || !publicClient) return;
+    try {
+      const [playerRaw, nextCheckinRaw] = await Promise.all([
+        publicClient.readContract({
+          address: bearTapGameAddress,
+          abi: bearTapGameAbi,
+          functionName: "getPlayer",
+          args: [address],
+        }),
+        publicClient.readContract({
+          address: bearTapGameAddress,
+          abi: bearTapGameAbi,
+          functionName: "secondsUntilNextUtcMidnight",
+        }),
+      ]);
+
+      const [score, streak, _lastCheckinDay, canCheckInNow, multiplierBps] = playerRaw as readonly [
+        bigint,
+        bigint,
+        bigint,
+        boolean,
+        bigint,
+      ];
+      const nextCheckinInSec = Number(nextCheckinRaw as bigint);
+
+      setState({
+        score: Number(score),
+        streak: Number(streak),
+        multiplierBps: Number(multiplierBps),
+        canCheckinNow: canCheckInNow,
+        nextCheckinInSec,
+      });
+      setCountdown(formatCountdownFromSeconds(nextCheckinInSec));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка чтения контракта.");
+    }
+  }, [address, publicClient]);
+
+  const fetchLeaderboard = useCallback(async () => {
+    if (!publicClient) return;
+    try {
+      const rowsRaw = (await publicClient.readContract({
+        address: bearTapGameAddress,
+        abi: bearTapGameAbi,
+        functionName: "getLeaderboard",
+      })) as readonly { player: `0x${string}`; score: bigint }[];
+
+      const mapped: LeaderboardRow[] = rowsRaw.map((row, index) => ({
+        rank: index + 1,
+        wallet: row.player,
+        score: Number(row.score),
+      }));
+      setLeaderboard(mapped);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка чтения лидерборда.");
+    }
+  }, [publicClient]);
 
   useEffect(() => {
-    const authenticate = async () => {
-      try {
-        const response = await sdk.quickAuth.fetch('/api/auth');
-        const data = await response.json();
-        setAuthData(data);
-      } catch (err) {
-        setAuthError(err as Error);
-      } finally {
-        setIsAuthLoading(false);
-      }
-    };
-
-    if (isReady) {
-      authenticate();
-    }
-  }, [isReady]);
-
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    if (!isConnected || !address) return;
     setError("");
+    void fetchState();
+    void fetchLeaderboard();
+  }, [isConnected, address, fetchState, fetchLeaderboard]);
 
-    // Check authentication first
-    if (isAuthLoading) {
-      setError("Please wait while we verify your identity...");
-      return;
-    }
+  useEffect(() => {
+    if (!state?.nextCheckinInSec) return;
+    let remaining = state.nextCheckinInSec;
+    const tick = () => {
+      setCountdown(formatCountdownFromSeconds(remaining));
+      remaining = Math.max(0, remaining - 1);
+    };
+    tick();
+    const interval = setInterval(() => {
+      tick();
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [state?.nextCheckinInSec]);
 
-    if (authError || !authData?.success) {
-      setError("Please authenticate to join the waitlist");
-      return;
-    }
+  useEffect(() => {
+    const refreshAfterTx = async () => {
+      if (!isTxMined) return;
+      setPendingTaps(0);
+      await fetchLeaderboard();
+      await fetchState();
+    };
+    void refreshAfterTx();
+  }, [fetchLeaderboard, fetchState, isTxMined]);
 
-    if (!email) {
-      setError("Please enter your email address");
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      setError("Please enter a valid email address");
-      return;
-    }
-
-    // TODO: Save email to database/API with user FID
-    console.log("Valid email submitted:", email);
-    console.log("User authenticated:", authData.user);
-    
-    // Navigate to success page
-    router.push("/success");
+  const handleTap = () => {
+    if (!state) return;
+    setPendingTaps((prev) => prev + 1);
   };
+
+  const handleSyncTaps = async () => {
+    if (!pendingTaps || !address || !state) return;
+    setError("");
+    try {
+      await writeContractAsync({
+        address: bearTapGameAddress,
+        abi: bearTapGameAbi,
+        functionName: "tap",
+        args: [BigInt(pendingTaps)],
+        chainId: base.id,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось отправить tap транзакцию.");
+    }
+  };
+
+  const handleCheckin = async () => {
+    if (!address || !state?.canCheckinNow) return;
+    setError("");
+    try {
+      await writeContractAsync({
+        address: bearTapGameAddress,
+        abi: bearTapGameAbi,
+        functionName: "checkIn",
+        args: [],
+        chainId: base.id,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось отправить check-in транзакцию.");
+    }
+  };
+
+  const isBusy = isWritePending || isTxMining;
+  const isCorrectChain = chainId === base.id;
+  const multiplier = state ? state.multiplierBps / 10000 : 1;
+  const projectedScore = state ? state.score + Math.floor((pendingTaps * state.multiplierBps) / 10000) : 0;
 
   return (
-    <div className={styles.container}>
-      <button className={styles.closeButton} type="button">
-        ✕
-      </button>
-      
-      <div className={styles.content}>
-        <div className={styles.waitlistForm}>
-          <h1 className={styles.title}>Join {farcasterConfig.miniapp.name.toUpperCase()}</h1>
-          
-          <p className={styles.subtitle}>
-             Hey {context?.user?.displayName || "there"}, Get early access and be the first to experience the future of<br />
-            crypto marketing strategy.
-          </p>
+    <main className={styles.container}>
+      <div className={styles.backgroundLayer} />
+      <div className={styles.mountainsLayer} />
+      <div className={styles.forestLayer} />
 
-          <form onSubmit={handleSubmit} className={styles.form}>
-            <input
-              type="email"
-              placeholder="Your amazing email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={styles.emailInput}
-            />
-            
-            {error && <p className={styles.error}>{error}</p>}
-            
-            <button type="submit" className={styles.joinButton}>
-              JOIN WAITLIST
-            </button>
-          </form>
+      <section className={styles.card}>
+        <h1 className={styles.title}>Bear Tapper</h1>
+        {!isConnected || !address ? (
+          <p className={styles.warning}>Подключите кошелек в Base App, чтобы играть.</p>
+        ) : !isCorrectChain ? (
+          <p className={styles.warning}>Переключите сеть кошелька на Base Mainnet.</p>
+        ) : (
+          <div className={styles.playerLine}>
+            <span>{name}</span>
+            <span>{shortWallet(address)}</span>
+          </div>
+        )}
+
+        {error && <p className={styles.error}>{error}</p>}
+
+        <div className={styles.scorePanel}>
+          <div>
+            <p className={styles.metaLabel}>Очки</p>
+            <p className={styles.metaValue}>{projectedScore}</p>
+          </div>
+          <div>
+            <p className={styles.metaLabel}>Streak</p>
+            <p className={styles.metaValue}>{state?.streak ?? 0}</p>
+          </div>
+          <div>
+            <p className={styles.metaLabel}>Множитель</p>
+            <p className={styles.metaValue}>x{multiplier.toFixed(2)}</p>
+          </div>
         </div>
-      </div>
-    </div>
+
+        {view === "menu" && (
+          <div className={styles.menuButtons}>
+            <button className={styles.woodButton} onClick={() => setView("leaderboard")} type="button">
+              Лидерборд
+            </button>
+            <button className={styles.woodButton} onClick={() => setView("checkin")} type="button">
+              Ончейн чек-ин
+            </button>
+            <button className={styles.woodButton} onClick={() => setView("tap")} type="button">
+              Начать тапать
+            </button>
+          </div>
+        )}
+
+        {view === "tap" && (
+          <div className={styles.viewBlock}>
+            <button className={styles.bearButton} type="button" onClick={handleTap} disabled={!state || isBusy || !isCorrectChain}>
+              <span className={styles.bearIcon}>🐻</span>
+              <span className={styles.bearCaption}>ТАПАЙ МЕДВЕДЯ</span>
+            </button>
+            <p className={styles.hint}>Обычный тап = 1 очко, плюс onchain множитель streak.</p>
+            <p className={styles.hint}>Неотправленные тапы: {pendingTaps}</p>
+            <button
+              className={styles.woodButton}
+              type="button"
+              onClick={() => void handleSyncTaps()}
+              disabled={!pendingTaps || isBusy || !isCorrectChain}
+            >
+              {isBusy ? "Транзакция..." : `Отправить ${pendingTaps} тап(ов) onchain`}
+            </button>
+          </div>
+        )}
+
+        {view === "checkin" && (
+          <div className={styles.viewBlock}>
+            <p className={styles.checkinText}>
+              Следующий UTC reset: <strong>00:00</strong>
+            </p>
+            <p className={styles.timer}>{countdown}</p>
+            <button
+              className={styles.woodButton}
+              type="button"
+              onClick={() => void handleCheckin()}
+              disabled={!state?.canCheckinNow || isBusy || !address || !isCorrectChain}
+            >
+              {isBusy
+                ? "Транзакция..."
+                : state?.canCheckinNow
+                  ? "Сделать ончейн чек-ин"
+                  : "Чек-ин уже сделан сегодня"}
+            </button>
+            {txHash && <p className={styles.hint}>Tx: {shortWallet(txHash)}</p>}
+          </div>
+        )}
+
+        {view === "leaderboard" && (
+          <div className={styles.viewBlock}>
+            <button className={styles.smallButton} type="button" onClick={() => void fetchLeaderboard()}>
+              Обновить
+            </button>
+            <div className={styles.leaderboard}>
+              {leaderboard.length === 0 ? (
+                <p className={styles.hint}>Пока нет игроков. Станьте первым!</p>
+              ) : (
+                leaderboard.map((row) => (
+                  <div className={styles.leaderboardRow} key={`${row.wallet}-${row.rank}`}>
+                    <span>#{row.rank}</span>
+                    <span>{shortWallet(row.wallet)}</span>
+                    <span>{row.score}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {view !== "menu" && (
+          <button className={styles.backButton} type="button" onClick={() => setView("menu")}>
+            В меню
+          </button>
+        )}
+      </section>
+    </main>
   );
 }
