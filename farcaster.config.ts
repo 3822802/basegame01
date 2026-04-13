@@ -18,6 +18,8 @@ export const farcasterConfig = {
     name: "Bear Tapper",
     subtitle: "Forest Tap Game",
     description: "Tap the bear, do daily onchain check-ins, and climb the leaderboard.",
+    imageUrl: `${ROOT_URL}/hero.png`,
+    buttonTitle: "Open Bear Tapper",
     screenshotUrls: [`${ROOT_URL}/screenshot.png`],
     iconUrl: `${ROOT_URL}/icon.png`,
     splashImageUrl: `${ROOT_URL}/splash.png`,
@@ -31,6 +33,7 @@ export const farcasterConfig = {
     ogTitle: "Bear Tapper",
     ogDescription: "Daily onchain check-ins boost your tap multiplier.",
     ogImageUrl: `${ROOT_URL}/hero.png`,
+    castShareUrl: ROOT_URL,
   },
 } as const;
 
