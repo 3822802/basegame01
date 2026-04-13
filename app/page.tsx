@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMiniApp } from "./providers/MiniAppProvider";
+import { Attribution } from "ox/erc8021";
+import { concat, encodeFunctionData, type Hex } from "viem";
 import { base } from "wagmi/chains";
-import { useAccount, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
 import { bearTapGameAbi, bearTapGameAddress } from "@/lib/contracts/bearTapGame";
 import styles from "./page.module.css";
 
@@ -22,6 +24,10 @@ interface LeaderboardRow {
   wallet: string;
   score: number;
 }
+
+const BUILDER_DATA_SUFFIX = Attribution.toDataSuffix({
+  codes: ["bc_3kvzpilt"],
+});
 
 function shortWallet(wallet: string) {
   if (!wallet) return "";
@@ -51,7 +57,7 @@ export default function Home() {
     [context?.user?.displayName, address],
   );
 
-  const { data: txHash, isPending: isWritePending, writeContractAsync } = useWriteContract();
+  const { data: txHash, isPending: isWritePending, sendTransactionAsync } = useSendTransaction();
   const { isLoading: isTxMining, isSuccess: isTxMined } = useWaitForTransactionReceipt({
     hash: txHash,
     query: { enabled: Boolean(txHash) },
@@ -156,11 +162,15 @@ export default function Home() {
     if (!pendingTaps || !address || !state) return;
     setError("");
     try {
-      await writeContractAsync({
-        address: bearTapGameAddress,
+      const callData = encodeFunctionData({
         abi: bearTapGameAbi,
         functionName: "tap",
         args: [BigInt(pendingTaps)],
+      });
+      await sendTransactionAsync({
+        to: bearTapGameAddress,
+        data: concat([callData, BUILDER_DATA_SUFFIX as Hex]),
+        value: BigInt(0),
         chainId: base.id,
       });
     } catch (err) {
@@ -172,11 +182,15 @@ export default function Home() {
     if (!address || !state?.canCheckinNow) return;
     setError("");
     try {
-      await writeContractAsync({
-        address: bearTapGameAddress,
+      const callData = encodeFunctionData({
         abi: bearTapGameAbi,
         functionName: "checkIn",
         args: [],
+      });
+      await sendTransactionAsync({
+        to: bearTapGameAddress,
+        data: concat([callData, BUILDER_DATA_SUFFIX as Hex]),
+        value: BigInt(0),
         chainId: base.id,
       });
     } catch (err) {
