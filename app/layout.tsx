@@ -22,6 +22,8 @@ export async function generateMetadata(): Promise<Metadata> {
         },
       }),
       "base:app_id": "69d8d6b934c69936dc95d6f1",
+      "talentapp:project_verification":
+        "3d8b593752ebfda18210b91e7ccdf617eeb5cd80b9e78efba4f7953d4fa355eba2858250582dab49295a73399ac580247fb333b2290a3a5a7f394db1c80cad52",
     },
   };
 }
