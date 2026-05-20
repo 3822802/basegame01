@@ -1,5 +1,13 @@
 export const bearTapGameAddress = "0xa865f97263b41862Db484aA46B66908401b3aB5B" as const;
 
+export const BEAR_TAPPER_BUILDER_CODE = "bc_3kvzpilt";
+export const BEAR_TAPPER_BUILDER_CODE_DATA_SUFFIX =
+  "0x62635f336b767a70696c740b0080218021802180218021802180218021" as const;
+
+export function withBearTapperBuilderCodeDataSuffix(data: `0x${string}`): `0x${string}` {
+  return `${data}${BEAR_TAPPER_BUILDER_CODE_DATA_SUFFIX.slice(2)}` as `0x${string}`;
+}
+
 export const bearTapGameAbi = [
   {
     inputs: [{ internalType: "uint256", name: "_leaderboardSize", type: "uint256" }],

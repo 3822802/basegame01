@@ -47,10 +47,14 @@ npm run dev
 
 - Network: Base Mainnet
 - Address: `0xa865f97263b41862Db484aA46B66908401b3aB5B`
+- Builder Code: `bc_3kvzpilt`
+- Builder data suffix: `0x62635f336b767a70696c740b0080218021802180218021802180218021`
 - Game actions:
   - `tap(uint256 tapsCount)`
-  - `checkIn()`
+  - `checkIn()` (free, once per UTC day)
 - Reads:
   - `getPlayer(address)`
   - `getLeaderboard()`
   - `secondsUntilNextUtcMidnight()`
+
+Website wallet connect: Rabby, MetaMask, Base Account via wagmi.
