@@ -36,4 +36,6 @@ export const farcasterConfig = {
     castShareUrl: ROOT_URL,
   },
 } as const;
+нужен апдейт 
 
+нуже
