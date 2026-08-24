@@ -58,3 +58,4 @@ npm run dev
   - `secondsUntilNextUtcMidnight()`
 
 Website wallet connect: Rabby, MetaMask, Base Account via wagmi.
+1
