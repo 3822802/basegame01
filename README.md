@@ -59,3 +59,4 @@ npm run dev
 
 Website wallet connect: Rabby, MetaMask, Base Account via wagmi.
 1
+3
