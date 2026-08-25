@@ -1,4 +1,4 @@
-# Bear Tapper
+eg# Bear Tapper
 
 Mobile-first tap game for Base App:
 - tap the bear to earn points,
