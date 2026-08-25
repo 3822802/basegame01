@@ -1,5 +1,5 @@
 # Bear Tapper
-
+g
 Mobile-first tap game for Base App:
 - tap the bear to earn points,
 - complete a daily onchain check-in,
