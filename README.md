@@ -42,7 +42,7 @@ NEXT_PUBLIC_URL=http://localhost:3000
 npm install
 npm run dev
 ```
-
+l
 ## Onchain Contract
 
 - Network: Base Mainnet
